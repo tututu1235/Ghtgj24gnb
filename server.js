@@ -7,16 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔍 Root endpoint
+// ✅ Root check
 app.get("/", (req, res) => {
   res.send("✅ Saim API is running!");
 });
 
-// 🌐 GitHub Base URL
+// 🌐 GitHub Raw Base URLs
 const FONT_BASE = "https://raw.githubusercontent.com/tututu1235/Ghtgj24gnb/main/fonts";
 const CAPTION_BASE = "https://raw.githubusercontent.com/tututu1235/Ghtgj24gnb/main/captions";
 
-// 🔠 Font List Route
+// 🔠 Font List Route (GET)
 app.get("/api/font/list", async (req, res) => {
   try {
     const response = await axios.get(`${FONT_BASE}/list.json`);
@@ -27,7 +27,7 @@ app.get("/api/font/list", async (req, res) => {
   }
 });
 
-// 🔤 Font Convert Route
+// 🔤 Font Convert Route (POST)
 app.post("/api/font", async (req, res) => {
   const { number, text } = req.body;
 
@@ -51,9 +51,9 @@ app.post("/api/font", async (req, res) => {
   }
 });
 
-// 📜 Caption Route
+// 📜 Caption Route (GET)
 app.get("/api/caption", async (req, res) => {
-  const { category, language = "bn" } = req.query;
+  const { category } = req.query;
 
   if (!category) {
     return res.status(400).json({ error: "Missing caption category." });
@@ -68,16 +68,22 @@ app.get("/api/caption", async (req, res) => {
     }
 
     const random = captions[Math.floor(Math.random() * captions.length)];
-    const captionText = language === "en" ? random.en : random.bn;
 
-    res.json({ category, caption: captionText });
+    // ✅ Return both Bangla and English
+    res.json({
+      category,
+      caption: {
+        bn: random.bn || "Not available",
+        en: random.en || "Not available"
+      }
+    });
   } catch (error) {
     console.error("❌ Caption Error:", error.message);
     res.status(500).json({ error: "Caption not found or error occurred." });
   }
 });
 
-// 🚀 Start Server
+// 🚀 Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Saim API running on port ${PORT}`);
