@@ -1,70 +1,75 @@
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-
+const axios = require("axios");
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Root test
 app.get("/", (req, res) => {
   res.send("✅ Saim API is running!");
 });
 
-// Caption API
-app.get("/api/caption", (req, res) => {
-  const { category, language = "bn" } = req.query;
-
-  if (!category) return res.status(400).json({ error: "Category is required" });
-
-  const filePath = path.join(__dirname, "captions", `${category}.json`);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Caption category not found" });
-
-  const captions = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  const random = captions[Math.floor(Math.random() * captions.length)];
-
-  if (!random || !random[language]) return res.status(404).json({ error: "Caption not available in this language" });
-
-  return res.json({ category, caption: random[language] });
+// 🔠 Font List Route (GET)
+app.get("/api/font/list", async (req, res) => {
+  try {
+    const url = "https://raw.githubusercontent.com/tututu1235/Ghtgj24gnb/main/fonts/list.json";
+    const response = await axios.get(url);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Font list not found." });
+  }
 });
 
-// Font API
-app.post("/api/font", (req, res) => {
+// 🔤 Font Convert Route (POST)
+app.post("/api/font", async (req, res) => {
   const { number, text } = req.body;
 
-  if (!number || !text) return res.status(400).json({ error: "Missing number or text" });
+  if (!number || !text) {
+    return res.status(400).json({ error: "Missing number or text." });
+  }
 
-  const filePath = path.join(__dirname, "fonts", `${number}.json`);
-  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Font number not found" });
+  try {
+    const fontUrl = `https://raw.githubusercontent.com/tututu1235/Ghtgj24gnb/main/fonts/${number}.json`;
+    const response = await axios.get(fontUrl);
+    const fontMap = response.data;
 
-  const fontMap = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  const converted = text.split("").map(char => fontMap[char] || char).join("");
+    const converted = text
+      .split("")
+      .map(char => fontMap[char] || char)
+      .join("");
 
-  return res.json({ converted });
+    res.json({ converted });
+  } catch (error) {
+    res.status(500).json({ error: "Font not found or error processing." });
+  }
 });
 
-// List available captions
-app.get("/api/caption/list", (req, res) => {
-  const dir = path.join(__dirname, "captions");
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".json")).map(f => f.replace(".json", ""));
-  return res.json({ categories: files });
+// 📜 Caption Route (GET)
+app.get("/api/caption", async (req, res) => {
+  const { category, language = "bn" } = req.query;
+
+  if (!category) {
+    return res.status(400).json({ error: "Missing caption category." });
+  }
+
+  try {
+    const captionUrl = `https://raw.githubusercontent.com/tututu1235/Ghtgj24gnb/main/captions/${category}.json`;
+    const response = await axios.get(captionUrl);
+    const captions = response.data;
+
+    if (!Array.isArray(captions) || captions.length === 0) {
+      return res.status(404).json({ error: "No captions found." });
+    }
+
+    const random = captions[Math.floor(Math.random() * captions.length)];
+    res.json({ category, caption: language === "en" ? random.en : random.bn });
+  } catch (error) {
+    res.status(500).json({ error: "Caption not found or error occurred." });
+  }
 });
 
-// List available fonts
-app.get("/api/font/list", (req, res) => {
-  const dir = path.join(__dirname, "fonts");
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".json")).map(f => f.replace(".json", ""));
-  return res.json({ fonts: files });
-});
-
-// 404
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Saim API server running on port ${PORT}`);
+  console.log(`🚀 Saim API running on port ${PORT}`);
 });
