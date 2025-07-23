@@ -1,7 +1,6 @@
 {
   "name": "saim-api",
   "version": "1.0.0",
-  "description": "Saim’s Caption and Font API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
